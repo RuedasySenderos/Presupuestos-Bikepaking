@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ruedas y Senderos · Gestor de ofertas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="rys-comun.js"></script>
+<script src="rys-doc.js"></script>
+<style>
+:root{
+  --pino:#24452F; --musgo:#5E8C35; --lago:#2C6E8F; --roca:#2F2B27; --gris:#6F6A63;
+  --nieve:#F4F6F1; --papel:#FFFFFF; --linea:#DCE2D6; --suave:#EAF0E4; --aviso:#9A5B13;
+  --fondo:#F4F6F1; --panel:#FFFFFF; --texto:#2F2B27;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--fondo:#141A16;--panel:#1C241E;--texto:#E8ECE4;--linea:#33402F;--suave:#223026;--gris:#A3AB9E;}}
+:root[data-theme="dark"]{--fondo:#141A16;--panel:#1C241E;--texto:#E8ECE4;--linea:#33402F;--suave:#223026;--gris:#A3AB9E;}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--fondo);color:var(--texto);font-family:"Barlow",Arial,Helvetica,sans-serif;font-size:16px;line-height:1.45}
+h1,h2,h3{font-family:"Barlow Condensed","Arial Narrow",Arial,sans-serif;font-weight:600;margin:0;letter-spacing:.01em}
+.hero{position:relative;max-width:1280px;margin:0 auto}
+.hero img{display:block;width:100%;height:auto;aspect-ratio:1400/446;object-fit:cover;border-radius:0 0 18px 18px}
+.wrap{max-width:1280px;margin:0 auto;padding:20px 20px 48px}
+.intro{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin:8px 0 20px}
+.intro h1{font-size:clamp(28px,4vw,40px);color:var(--texto)}
+.intro p{margin:4px 0 0;color:var(--gris);max-width:60ch}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:22px;align-items:start}
+@media (max-width:960px){.grid{grid-template-columns:minmax(0,1fr)}.papel-wrap{position:static}}
+.panel{min-width:0;background:var(--panel);border:1px solid var(--linea);border-radius:14px;padding:18px}
+.panel h2{font-size:22px;margin-bottom:10px}
+.drop{border:2px dashed var(--linea);border-radius:12px;padding:22px;text-align:center;transition:border-color .15s,background .15s}
+.drop.over{border-color:var(--musgo);background:var(--suave)}
+.drop p{margin:6px 0 0;color:var(--gris);font-size:14px}
+button,.btn{white-space:nowrap;font:600 15px "Barlow",Arial,sans-serif;border-radius:10px;border:1px solid transparent;padding:10px 16px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.primario{background:var(--pino);color:#fff}
+.primario:hover{background:#1b3624}
+.primario:disabled{background:#9DAA9F;cursor:not-allowed}
+.sec{background:transparent;color:var(--texto);border-color:var(--linea)}
+.sec:hover{border-color:var(--musgo)}
+.enlace{background:none;border:none;color:var(--lago);padding:4px 0;text-decoration:underline;font-weight:500}
+:focus-visible{outline:3px solid var(--lago);outline-offset:2px}
+.fila-btn{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;justify-content:center}
+.ajustes{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-top:16px}
+.ajustes label{font-size:13px;color:var(--gris);display:block}
+.ajustes input{width:100%;font:500 15px "Barlow",Arial,sans-serif;padding:8px 10px;border-radius:8px;border:1px solid var(--linea);background:var(--panel);color:var(--texto);margin-top:3px}
+.nota{font-size:13px;color:var(--gris);margin:8px 0 0}
+.meta{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin:18px 0 8px}
+.meta select{font:500 14px "Barlow",Arial,sans-serif;padding:6px 8px;border-radius:8px;border:1px solid var(--linea);background:var(--panel);color:var(--texto)}
+.tabla-wrap{overflow-x:auto;border:1px solid var(--linea);border-radius:10px;max-height:420px;overflow-y:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{position:sticky;top:0;background:var(--pino);color:#fff;text-align:left;font-weight:600;padding:8px 10px;white-space:nowrap}
+td{padding:8px 10px;border-top:1px solid var(--linea);white-space:nowrap}
+tr.fila{cursor:pointer}
+tr.fila:hover td{background:var(--suave)}
+tr.activa td{background:var(--suave);box-shadow:inset 3px 0 0 var(--musgo)}
+td input{width:18px;height:18px;accent-color:var(--pino)}
+.vacio{padding:28px;text-align:center;color:var(--gris)}
+.mapa{font-size:12px;color:var(--gris);margin-top:10px}
+.mapa b{color:var(--texto);font-weight:600}
+.falta{color:var(--aviso)}
+.barra{flex-wrap:wrap;position:sticky;bottom:calc(12px + env(safe-area-inset-bottom,0px));margin-top:14px;display:flex;gap:10px;align-items:center;justify-content:space-between;background:var(--panel);border:1px solid var(--linea);border-radius:12px;padding:10px 12px}
+.estado{font-size:14px;color:var(--gris)}
+.estado.ok{color:var(--musgo)} .estado.err{color:#B3261E}
+/* Vista previa */
+.papel-wrap{position:sticky;top:calc(16px + env(safe-area-inset-top,0px))}
+.papel{background:#fff;color:#2F2B27;border-radius:6px;box-shadow:0 1px 0 var(--linea),0 12px 32px rgba(20,40,25,.14);overflow:hidden;font-size:13px;min-height:0;display:flex;flex-direction:column}
+.papel img{width:100%;display:block;aspect-ratio:1400/446;object-fit:cover}
+.pp{padding:4% 7% 14px;flex:1;display:flex;flex-direction:column}
+.pp-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.pp-top h3{font-size:22px;color:#24452F}
+.pp-meta{text-align:right;font-size:11px;color:#6F6A63;line-height:1.5}
+.pp-meta b{color:#2F2B27}
+.pp-sec{font:600 14px "Barlow Condensed",Arial,sans-serif;color:#24452F;border-bottom:1.5px solid #5E8C35;margin:12px 0 6px;padding-bottom:2px}
+.pp-g{display:grid;grid-template-columns:1fr 1fr;gap:4px 14px}
+.pp-g small{display:block;font-size:9.5px;color:#6F6A63}
+.pp-g span{font-weight:500}
+.pp-stats{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-top:6px}
+.pp-stats div{background:#EAF0E4;border-radius:4px;padding:5px 4px;text-align:center}
+.pp-stats b{display:block;font-size:clamp(9px,1vw,12px);white-space:nowrap;color:#24452F}
+.pp-stats small{font-size:8.5px;color:#6F6A63}
+.pp table{font-size:11.5px;margin-top:4px}
+.pp th{position:static;background:#24452F;padding:5px 6px;font-size:11px}
+.pp td{padding:5px 6px;border-top:1px solid #DCE2D6;white-space:normal;color:#2F2B27}
+.pp td.n{text-align:right;white-space:nowrap}
+.pp .tot td{border:none;padding:3px 6px;color:#6F6A63}
+.pp .gran td{background:#24452F;color:#fff;font-weight:700;font-size:13px}
+.pp-foot{background:#24452F;color:#fff;text-align:center;padding:10px;font-size:11px}
+.pp-foot a{color:#B9DD8E;word-break:break-all}
+.pend{color:#9A5B13;font-style:italic}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style><style>
+.origen{display:flex;gap:8px;flex-wrap:wrap}
+.origen input{flex:1 1 240px;min-width:0;font:500 15px "Barlow",Arial,sans-serif;padding:10px 12px;border-radius:10px;border:1px solid var(--linea);background:var(--panel);color:var(--texto)}
+.sep{display:flex;align-items:center;gap:10px;color:var(--gris);font-size:13px;margin:14px 0}
+.sep::before,.sep::after{content:"";flex:1;height:1px;background:var(--linea)}
+.lista{display:flex;flex-direction:column;gap:8px;margin-top:6px;max-height:520px;overflow-y:auto;padding-right:2px}
+.sol{display:grid;grid-template-columns:auto 1fr auto;gap:4px 12px;align-items:start;border:1px solid var(--linea);border-radius:12px;padding:12px;cursor:pointer;background:var(--panel)}
+.sol:hover{border-color:var(--musgo)}
+.sol.activa{border-color:var(--pino);box-shadow:inset 4px 0 0 var(--musgo)}
+.sol input{width:20px;height:20px;margin-top:2px;accent-color:var(--pino)}
+.sol .nom{font-weight:600;font-size:16px}
+.sol .ruta{font-size:14px;color:var(--gris)}
+.sol .fec{font-size:12px;color:var(--gris);text-align:right;white-space:nowrap}
+.sol .ref{display:block;font-weight:600;color:var(--texto)}
+.sol.hecha{background:var(--suave);border-color:#B9CBB0}
+.sol.hecha .nom,.sol.hecha .ruta{opacity:.75}
+.chip{display:inline-block;font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 9px;margin-top:6px}
+.chip.ok{background:#2E6B3F;color:#fff}
+.chip.pend{background:#F3E3C7;color:#7A4A0E}
+.reabrir{background:none;border:none;color:var(--lago);font:500 12px "Barlow",Arial,sans-serif;text-decoration:underline;padding:0;margin-left:8px;cursor:pointer}
+.filtro{display:flex;gap:6px;flex-wrap:wrap}
+.filtro button{padding:5px 12px;font-size:13px;border-radius:999px;border:1px solid var(--linea);background:transparent;color:var(--texto)}
+.filtro button[aria-pressed="true"]{background:var(--pino);color:#fff;border-color:var(--pino)}
+.sello{position:absolute;top:12px;right:12px;background:#2E6B3F;color:#fff;font:600 13px "Barlow",Arial,sans-serif;padding:6px 12px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.papel{position:relative}
+.nuevo{display:inline-block;background:var(--musgo);color:#fff;font-size:11px;font-weight:600;border-radius:6px;padding:1px 6px;margin-left:6px;vertical-align:2px}
+.completar{margin-top:14px}
+.completar h3{font-size:18px;margin-bottom:4px}
+.completar .ajustes input{font-size:14px}
+.completar .ancho{grid-column:1/-1}
+.aviso-cfg{font-size:13px;color:var(--gris);background:var(--suave);border-radius:10px;padding:10px 12px;margin-top:10px}
+
+.pie{max-width:1280px;margin:0 auto;padding:0 20px 32px}
+.pie-caja{background:var(--pino);color:#fff;border-radius:16px;padding:22px 20px;display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between}
+.pie-caja p{margin:0;max-width:56ch;font-size:15px;color:#DCE8D3}
+.pie-caja strong{display:block;font:600 22px "Barlow Condensed",Arial,sans-serif;color:#fff;margin-bottom:2px}
+.btn-pie{background:#fff;color:var(--pino);font-size:17px;padding:14px 22px;border-radius:12px}
+.btn-pie:hover{background:#EAF0E4}
+.btn-pie:disabled{background:#9DAA9F;color:#E8ECE4;cursor:not-allowed}
+.cfg{margin-top:10px;font-size:14px}.cfg summary{cursor:pointer;color:var(--gris)}.cfg input{width:100%;margin-top:8px;font:500 15px "Barlow",Arial,sans-serif;padding:9px 12px;border-radius:10px;border:1px solid var(--linea);background:var(--panel);color:var(--texto)}
+.chip.acep{background:#1F5F8B;color:#fff}
+.aloj-row{display:grid;grid-template-columns:72px 1.4fr 1fr 90px;gap:6px;margin-top:6px}
+.aloj-row input{min-width:0;font:14px "Barlow",Arial,sans-serif;padding:7px 8px;border-radius:8px;border:1px solid var(--linea);background:var(--panel);color:var(--texto)}
+.aloj-row .f{font-size:13px;color:var(--gris);align-self:center}
+.aloj-row .enl{grid-column:2/-1}
+.pp-acepto{display:inline-block;background:#fff;color:#24452F;font-weight:700;border-radius:8px;padding:6px 14px;margin-top:6px}
+#pie-email{display:flex;gap:8px;align-items:center;color:#DCE8D3;font-size:14px;margin-top:8px}
+#pie-email input{width:18px;height:18px;accent-color:#B9DD8E}
+</style>
+</head>
+<body>
+<header class="hero"><img id="banner" alt="Ruedas y Senderos"></header>
+<main class="wrap">
+  <div class="intro"><div>
+    <h1>Presupuestos de "Diseña tu viaje"</h1>
+    <p>Trae las solicitudes de tu hoja de Google, envía el presupuesto al cliente y, cuando lo acepte, prepárale la documentación completa de la ruta.</p>
+  </div></div>
+
+  <div class="grid">
+    <section class="panel" aria-labelledby="t-sol">
+      <h2 id="t-sol">Solicitudes recibidas</h2>
+      <label for="url-hoja" class="nota" style="margin:0 0 6px;display:block">Enlace de tu Apps Script (…/exec) y tu clave de gestor</label>
+      <div class="origen">
+        <input id="url-hoja" type="url" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off">
+        <input id="clave-hoja" type="password" placeholder="Clave" autocomplete="current-password" style="flex:0 1 160px">
+        <button class="primario" id="btn-cargar">Cargar solicitudes</button>
+      </div>
+      <details class="cfg"><summary>Script de correos (aceptación y envíos al cliente)</summary>
+        <input id="url-correos" type="url" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off">
+        <p class="nota">Pega aquí la URL del script "Correos Ruedas y Senderos". Sin él, los PDF se descargan pero no se envían por email.</p>
+      </details>
+      <div class="sep">o</div>
+      <div class="fila-btn" style="margin-top:0">
+        <button class="sec" id="btn-import">Importar archivo descargado (.xlsx o .csv)</button>
+        <input type="file" id="file" accept=".xlsx,.xls,.ods,.csv" hidden>
+      </div>
+
+      <div class="ajustes">
+        <div><label for="margen">Margen sobre coste (%)</label><input id="margen" type="number" min="0" step="1" value="10"></div>
+        <div><label for="iva">IVA (%)</label><input id="iva" type="number" min="0" step="1" value="21"></div>
+        <div><label for="validez">Validez (días)</label><input id="validez" type="number" min="1" step="1" value="15"></div>
+      </div>
+
+      <div id="zona-lista" hidden>
+        <div class="meta"><strong id="resumen"></strong>
+          <label style="font-size:14px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="chk-todas" style="width:18px;height:18px;accent-color:var(--pino)">Marcar todas</label></div>
+        <div class="filtro" role="group" aria-label="Filtrar solicitudes">
+          <button data-f="todas" aria-pressed="true">Todas</button><button data-f="pend" aria-pressed="false">Pendientes</button><button data-f="fin" aria-pressed="false">Enviadas</button><button data-f="acep" aria-pressed="false">Aceptadas</button>
+        </div>
+        <div class="lista" id="lista" role="list" style="margin-top:10px"></div>
+      </div>
+
+      <div class="barra">
+        <span class="estado" id="estado">Pega el enlace de tu hoja y pulsa "Cargar solicitudes".</span>
+        <button class="primario" id="btn-pdf" disabled>Generar oferta</button>
+      </div>
+    </section>
+
+    <section class="papel-wrap" aria-label="Vista previa">
+      <div class="papel" id="papel"><img alt="" id="banner2"><div class="pp"><p class="vacio">Toca una solicitud para ver aquí su oferta.</p></div><div class="pp-foot" id="pp-foot" hidden></div></div>
+      <div class="panel completar" id="completar" hidden>
+        <h3>Completar esta oferta</h3>
+        <div class="ruta-real">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+            <strong>Ruta real por caminos</strong><button class="sec" id="btn-ruta">Calcular ruta real</button></div>
+          <p class="nota" id="rr-info" style="margin-top:6px"></p>
+        </div>
+        <p class="nota" style="margin-top:12px">Datos que el formulario no recoge. Desnivel, altitudes y track se rellenan solos con la ruta real; escribe aquí solo si quieres cambiarlos.</p>
+        <div class="ajustes">
+          <div><label for="c-aloj">Alojamiento, coste total (€)</label><input id="c-aloj" type="number" min="0" step="0.01" placeholder="Por confirmar"></div>
+          <div><label for="c-dpos">Desnivel + (m)</label><input id="c-dpos" type="number" min="0" step="1"></div>
+          <div><label for="c-amax">Altitud máx. (m)</label><input id="c-amax" type="number" step="1"></div>
+          <div><label for="c-amin">Altitud mín. (m)</label><input id="c-amin" type="number" step="1"></div>
+          <div class="ancho"><label for="c-wikiloc">Enlace de Wikiloc (opcional)</label><input id="c-wikiloc" type="url" placeholder="https://es.wikiloc.com/rutas-…"></div>
+          <div class="ancho"><label for="c-track">Otro enlace de track (opcional)</label><input id="c-track" type="url" placeholder="Si lo dejas vacío se usa la ruta real calculada"></div>
+        </div>
+      </div>
+      <div class="panel completar" id="docpanel" hidden>
+        <h3>Documentación de la ruta</h3>
+        <p class="nota" id="doc-aviso" style="margin-top:0"></p>
+        <div id="doc-aloj"></div>
+        <label class="nota" for="doc-notas" style="display:block;margin-top:10px">Notas para el cliente (opcional)</label>
+        <textarea id="doc-notas" rows="3" style="width:100%;font:15px Barlow,Arial,sans-serif;padding:8px 10px;border-radius:8px;border:1px solid var(--linea);background:var(--panel);color:var(--texto)"></textarea>
+        <div class="fila-btn" style="justify-content:flex-start">
+          <button class="sec" id="doc-pdf">Descargar documentación</button>
+          <button class="primario" id="doc-enviar">Enviar al cliente por email</button>
+        </div>
+        <p class="nota" id="doc-msg" role="status"></p>
+      </div>
+    </section>
+  </div>
+</main>
+<footer class="pie">
+  <div class="pie-caja">
+    <div><strong id="pie-titulo">Oferta lista para enviar</strong><p id="pie-texto">Carga las solicitudes y elige un cliente para generar su PDF.</p>
+      <label id="pie-email"><input type="checkbox" id="chk-email" checked> Enviar también por email al cliente, con el botón "Acepto presupuesto"</label></div>
+    <button class="btn-pie" id="btn-pdf-pie" disabled>Generar PDF para el cliente</button>
+  </div>
+</footer>
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const BANNER = RYS.BANNER; $('banner').src = BANNER; $('banner2').src = BANNER;
+
+// ---------- Tarifas internas (las mismas que usa la app "Diseña tu viaje") ----------
+const DV_COSTS = {
+  alimentos:{'Bebida isotónica':{unidad:2,unidadesDia:2},'Barritas energéticas':{unidad:2,unidadesDia:2},'Frutos secos':{unidad:2,unidadesDia:1},'Geles y electrolitos':{unidad:2,unidadesDia:1}},
+  recogidaFinal:25, recogidaParcial:25, transporteBici:30, kmVehiculo:0.5, furgonetas:[200,195], puestaPuntoPorHora:30, puestaPuntoHorasPorBici:1
+};
+
+// ---------- Utilidades ----------
+const norm = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function arreglar(s){ s=String(s ?? ''); if(/[ÃðÂâ]/.test(s)){ try{ s=decodeURIComponent(escape(s)); }catch(e){} } return s.trim(); }
+const limpio = s => arreglar(s).replace(/^[^\p{L}\p{N}]+/u,'').replace(/\(sin elegir\)/i,'').trim();
+function num(v){ if(v===null||v===undefined||v==='') return null; if(typeof v==='number') return isFinite(v)?v:null;
+  let s=String(v).replace(/[€\s]/g,''); if(s.includes(',')&&!s.includes('.')) s=s.replace(',','.'); else if(s.includes(',')&&s.includes('.')) s=s.replace(/\./g,'').replace(',','.');
+  const n=parseFloat(s); return isFinite(n)?n:null; }
+const grupo = i => i.replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+function fmtNum(n,dec=0){ const neg=n<0; const [i,d]=Math.abs(n).toFixed(dec).split('.'); return (neg?'-':'')+grupo(i)+(d?','+d:''); }
+const eur = n => fmtNum(n,2)+' €';
+const dd = n => String(n).padStart(2,'0');
+const fmtFecha = d => d ? `${dd(d.getDate())}/${dd(d.getMonth()+1)}/${d.getFullYear()}` : '';
+const fmtFechaHora = d => d ? `${fmtFecha(d)} ${dd(d.getHours())}:${dd(d.getMinutes())}` : '';
+function aFecha(v){
+  if(v instanceof Date && !isNaN(v)) return v;
+  if(typeof v==='number' && v>20000 && v<80000) return new Date(Math.round((v-25569)*864e5));
+  const s=String(v ?? '').trim(); if(!s) return null;
+  let m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[ ,T]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+  if(m) return new Date(+m[3],m[2]-1,+m[1],+(m[4]||0),+(m[5]||0),+(m[6]||0));
+  m=s.match(/^(\d{4})-(\d{2})-(\d{2})$/); if(m) return new Date(+m[1],m[2]-1,+m[3]);
+  m=s.match(/^Date\((\d+),(\d+),(\d+)(?:,(\d+),(\d+),(\d+))?\)$/); if(m) return new Date(+m[1],+m[2],+m[3],+(m[4]||0),+(m[5]||0),+(m[6]||0));
+  const d=new Date(s); return isNaN(d)?null:d;
+}
+const pdfTxt = s => String(s ?? '').replace(/[→⇒➜]/g,'-').replace(/[–—]/g,'-').replace(/[“”]/g,'"').replace(/[‘’]/g,"'").replace(/[^\x20-\x7E\xA0-\xFF€]/g,'').replace(/\s+/g,' ').trim();
+
+// ---------- Lectura de la hoja ----------
+// Cada fila de la hoja trae la fecha de envío y uno o varios bloques JSON con el formulario completo.
+function jsonDe(c){ if(typeof c!=='string') return null; const t=c.trim(); if(!t.startsWith('{')) return null; try{ return JSON.parse(t); }catch(e){ return null; } }
+function leerFila(celdas, nFila){
+  let form=null, costes=null, fechaEnvio=null, numero='', coords=null;
+  for(const c of celdas){
+    const j=jsonDe(c); if(!j) continue;
+    if(j.formulario){ form=j.formulario; costes=j.costes_internos_solo_gestor||costes; fechaEnvio=j.fecha_envio||fechaEnvio; numero=j.numero_solicitud||numero; coords=j.coordenadas||coords; }
+    else if(j['Datos del cliente']) form=form||j;
+    else if('numCiclistas' in j || 'subtotalSinAlojamiento' in j) costes=costes||j;
+  }
+  if(!form) return null;
+  const est = celdas.find(c=>typeof c==='string' && /^(pendiente|finalizada|aceptado)$/i.test(c.trim()));
+  let fecha = fechaEnvio ? new Date(fechaEnvio) : null;
+  if(!fecha || isNaN(fecha)) fecha = aFecha(celdas[0]);
+  const s=construir(form, costes, fecha, arreglar(numero), coords, nFila); s.estadoHoja=est?est.trim():''; return s;
+}
+function campo(form, seccion, etiqueta){
+  const sec = Object.keys(form).find(k=>norm(arreglar(k))===norm(seccion)); if(!sec) return '';
+  const obj=form[sec]||{}; const k=Object.keys(obj).find(k=>norm(arreglar(k))===norm(etiqueta));
+  return k? arreglar(obj[k]) : '';
+}
+function construir(form, c, fecha, numero, coords, nFila){
+  const F=(s,e)=>campo(form,s,e);
+  const si = v => norm(v).startsWith('si');
+  const n = num(F('El grupo','Nº de ciclistas')) ?? num(c&&c.numCiclistas) ?? 0;
+  const km = num(F('La ruta','Km totales')) ?? num(c&&c.kmTotal);
+  const kmDia = num(F('La ruta','Km/día')) ?? num(c&&c.kmDia);
+  const dias = num(c&&c.dias) ?? (km&&kmDia ? Math.max(1,Math.ceil(km/kmDia)) : 1);
+  const kmVeh = num(F('Recogida, traslados y transporte','Km del vehículo (ida+vuelta)')) ?? num(c&&c.kmVehiculo) ?? 0;
+  // servicios
+  const alimEmpresa = norm(F('Alimentación','Alimentación durante la ruta')).startsWith('que se la suministre');
+  const productos = F('Alimentación','Elige uno o varios productos').split(',').map(s=>limpio(s)).filter(Boolean);
+  const recogida = si(F('Recogida, traslados y transporte','¿Recogida de ciclistas al final de la ruta?'));
+  const parcial = si(F('Recogida, traslados y transporte','¿Recogida parcial en ruta?'));
+  const nParcial = num(F('Recogida, traslados y transporte','Nº de ciclistas que quieren volver a casa')) ?? num(c&&c.numRecogidaParcial) ?? 0;
+  const pobParcial = F('Recogida, traslados y transporte','Población donde recogerlos') || (c&&c.poblacionRecogidaParcial) || '';
+  const bici = si(F('Recogida, traslados y transporte','¿Transporte de bicicletas en furgoneta?'));
+  const pap = si(F('Puesta a punto de bicicletas','¿Quieren puesta a punto de bicicletas?'));
+  const nBicis = num(F('Puesta a punto de bicicletas','Nº de bicicletas a revisar')) ?? num(c&&c.numBicisPuestaPunto) ?? 0;
+  // costes (los del envío si existen; si no, se recalculan con las tarifas)
+  const costeAlim = c&&c.costeAlim!=null ? +c.costeAlim : (alimEmpresa ? productos.reduce((s,p)=>{const d=DV_COSTS.alimentos[p]; return s+(d?d.unidad*d.unidadesDia*n*dias:0);},0) : 0);
+  const costeRec = c&&c.costeRecogida!=null ? +c.costeRecogida : (recogida ? DV_COSTS.recogidaFinal*n + (parcial?DV_COSTS.recogidaParcial*n:0) : 0);
+  const costeBici = c&&c.costeBici!=null ? +c.costeBici : (bici ? DV_COSTS.transporteBici*n : 0);
+  const hayFurgo = c&&c.hasFurgoneta!=null ? !!c.hasFurgoneta : (recogida||bici);
+  const costeFurgo = hayFurgo ? (c&&c.costeFurgoEuropcar!=null ? Math.min(+c.costeFurgoEuropcar, +c.costeFurgoEnterprise||Infinity) : Math.min(...DV_COSTS.furgonetas)+kmVeh*DV_COSTS.kmVehiculo) : 0;
+  const costePap = c&&c.costePuestaPunto!=null ? +c.costePuestaPunto : (pap ? nBicis*DV_COSTS.puestaPuntoHorasPorBici*DV_COSTS.puestaPuntoPorHora : 0);
+  const tipoRutaRaw = F('La ruta','Tipo de ruta');
+  const tipoRuta = /circular/i.test(tipoRutaRaw)?'Circular':/lineal/i.test(tipoRutaRaw)?'Lineal':limpio(tipoRutaRaw);
+  const inicio=F('La ruta','Punto de inicio'), fin=F('La ruta','Punto de fin');
+  let track='';
+  if(coords&&coords.inicio&&coords.inicio.lat!=null){
+    const p=['v=1',`ll=${coords.inicio.lat},${coords.inicio.lon}`,`n=${encodeURIComponent('Inicio: '+inicio)}`];
+    if(coords.fin&&coords.fin.lat!=null) p.push(`ll=${coords.fin.lat},${coords.fin.lon}`,`n=${encodeURIComponent('Fin: '+fin)}`);
+    track='https://omaps.app/map?'+p.join('&');
+  }
+  const nombre=F('Datos del cliente','Nombre del cliente');
+  return {
+    nFila, fecha, numero, nombre, menores:F('El grupo','Menores de edad'), hora:F('Recogida, traslados y transporte','Hora aprox. de recogida'),
+    meteo:limpio(F('Meteorología y extras','¿Incluir previsión meteorológica?')), extrasProp:F('Meteorología y extras','Extras en la propuesta').split(',').map(x=>limpio(x)).filter(Boolean), notasAd:F('Meteorología y extras','Notas adicionales'), telefono:F('Datos del cliente','Teléfono / WhatsApp'), email:F('Datos del cliente','Correo electrónico'),
+    n, edades:F('El grupo','Edades aprox.'), nivel:limpio(F('El grupo','Nivel de los ciclistas')), tipoBici:limpio(F('El grupo','Tipo de bicicleta')),
+    tipoRuta, inicio, fin, salida:aFecha(F('La ruta','Fecha de inicio')), km, kmDia, dias, noches:Math.max(dias-1,0),
+    terreno:limpio(F('La ruta','Terreno preferido')), desnivel:limpio(F('La ruta','Desnivel máximo')), obs:F('La ruta','Observaciones'),
+    alojGestion:F('Alojamiento','Gestión del alojamiento'), alojTipo:limpio(F('Alojamiento','Tipo preferido')),
+    alimEmpresa, productos, recogida, parcial, nParcial, pobParcial:arreglar(pobParcial), bici, kmVeh, pap, nBicis,
+    costeAlim, costeRec, costeBici, costeFurgo, hayFurgo, costePap, track, coords,
+    clave: numero || (fecha?fecha.toISOString():'')+'|'+nombre
+  };
+}
+
+// ---------- Estado ----------
+let sols=[], sel=new Set(), activa=null;
+const LS = { get(k,d){ try{ const v=localStorage.getItem(k); return v==null?d:JSON.parse(v); }catch(e){ return d; } }, set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} } };
+const aj = LS.get('rys-ajustes',null); if(aj) ['margen','iva','validez'].forEach(k=>{ if(aj[k]!=null) $(k).value=aj[k]; });
+const URL_SCRIPT='https://script.google.com/macros/s/AKfycbzT0Sri3mGH4pR817nItIu0TOxXuZplE0QVqim28iCxPodkXHYtGNdNvX8RhOxKw_bZkA/exec';
+{ // separar la clave si venía pegada en el enlace guardado
+  let u=LS.get('rys-url','')||URL_SCRIPT, c=LS.get('rys-clave','');
+  const m=u.match(/[?&]clave=([^&]*)/); if(m){ if(m[1]&&!c) c=decodeURIComponent(m[1]); u=u.replace(/[?&]clave=[^&]*/,''); }
+  $('url-hoja').value=u; $('clave-hoja').value=c;
+}
+function urlConClave(){
+  const u=$('url-hoja').value.trim().replace(/[?&]clave=[^&]*/,''), c=$('clave-hoja').value.trim();
+  if(!/script\.google(usercontent)?\.com/.test(u)) return u;
+  return c ? u+(u.includes('?')?'&':'?')+'clave='+encodeURIComponent(c) : u;
+}
+['margen','iva','validez'].forEach(k=>$(k).addEventListener('input',()=>{ LS.set('rys-ajustes',{margen:$('margen').value,iva:$('iva').value,validez:$('validez').value}); pintarPrevia(); }));
+const ajustes = () => ({ margen:(num($('margen').value)||0)/100, iva:(num($('iva').value)||0)/100, validez:Math.max(1,num($('validez').value)||15) });
+let extras = LS.get('rys-extras',{});
+const CAMPOS_EXTRA = {aloj:'c-aloj', dpos:'c-dpos', amax:'c-amax', amin:'c-amin', wikiloc:'c-wikiloc', track:'c-track'};
+Object.entries(CAMPOS_EXTRA).forEach(([k,id])=>$(id).addEventListener('input',()=>{
+  const s=sols[activa]; if(!s) return; extras[s.clave]=extras[s.clave]||{}; extras[s.clave][k]=$(id).value; LS.set('rys-extras',extras); pintarPrevia();
+}));
+function estado(m,c=''){ const e=$('estado'); e.textContent=m; e.className='estado '+c; }
+
+function cargarFilas(aoa, origen){
+  const out=[]; aoa.forEach((r,i)=>{ const s=leerFila(r,i+1); if(s) out.push(s); });
+  if(!out.length){ estado('No he encontrado solicitudes en '+origen+'. Revisa que sea la hoja donde llegan los formularios.','err'); return; }
+  out.sort((a,b)=>(b.fecha?b.fecha.getTime():0)-(a.fecha?a.fecha.getTime():0) || b.nFila-a.nFila);
+  sols=out; sel=new Set(); activa=0;
+  $('zona-lista').hidden=false;
+  pintarLista(); pintarPrevia(); barra(); asegurarRuta(sols[0]); abrirDocPedido();
+  estado(`Cargadas ${out.length} solicitudes desde ${origen}. Marca las que quieras presupuestar.`,'ok');
+}
+
+// ---------- Fuentes: Google Sheets / Apps Script / archivo ----------
+function parseCSV(t){
+  const rows=[]; let row=[], f='', q=false;
+  for(let i=0;i<t.length;i++){ const ch=t[i];
+    if(q){ if(ch==='"'){ if(t[i+1]==='"'){ f+='"'; i++; } else q=false; } else f+=ch; }
+    else if(ch==='"') q=true; else if(ch===','){ row.push(f); f=''; }
+    else if(ch==='\n'||ch==='\r'){ if(ch==='\r'&&t[i+1]==='\n') i++; row.push(f); rows.push(row); row=[]; f=''; }
+    else f+=ch; }
+  if(f!==''||row.length){ row.push(f); rows.push(row); }
+  return rows;
+}
+async function cargarURL(){
+  const url=urlConClave(); if(!url){ estado('Pega primero el enlace de tu Apps Script.','err'); return; }
+  LS.set('rys-url',$('url-hoja').value.trim()); LS.set('rys-clave',$('clave-hoja').value.trim());
+  $('btn-cargar').disabled=true; estado('Cargando solicitudes…');
+  const idHoja=(url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/)||[])[1];
+  if(mcp && idHoja){
+    try{
+      const r=await mcp.callTool('Google Drive','download_file_content',{fileId:idHoja,exportMimeType:'text/csv'},{cache:false});
+      const pl=r.payload||{}; const b64=typeof pl==='string'?pl:pl.content;
+      if(!b64) throw {code:'tool_error',message:'vacío'};
+      const bin=atob(b64), bytes=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+      cargarFilas(parseCSV(new TextDecoder('utf-8').decode(bytes)), 'Google Drive'); LS.set('rys-auto',true);
+    }catch(e){
+      const c=e&&e.code;
+      estado({server_not_connected:'Conecta Google Drive en Ajustes → Conectores de Claude y vuelve a pulsar "Cargar solicitudes".',
+        needs_reauth:'La conexión con Google Drive ha caducado: vuelve a conectarla en Ajustes → Conectores.',
+        selection_required:'Tienes más de una cuenta de Google Drive conectada: elige cuál usar en el aviso de Claude.',
+        not_in_manifest:'Has denegado el acceso a Google Drive para esta página. Actívalo en el menú de permisos de la app.',
+        blocked_by_policy:'Tu organización no permite usar Google Drive desde esta página.',
+        tool_error:'Google Drive no encuentra esa hoja. Comprueba que el enlace es el de tu hoja de solicitudes.'}[c]
+        || 'No se pudo conectar con Google Drive ahora mismo. Vuelve a intentarlo en unos segundos.','err');
+    }finally{ $('btn-cargar').disabled=false; }
+    return;
+  }
+  try{
+    let aoa;
+    if(/script\.google(usercontent)?\.com/.test(url)){
+      if(!/[?&]clave=[^&]+/.test(url)) throw new Error('sinclave');
+      let r; try{ r=await fetch(url,{redirect:'follow'}); }catch(err){ throw new Error('cors'); }
+      const t=await r.text(); let j=null; try{ j=JSON.parse(t); }catch(err){}
+      if(!j){ throw new Error(/doGet/i.test(t)?'nodoget':/autoriz|authoriz/i.test(t)?'auth':'nojson'); }
+      if(j.error==='clave') throw new Error('clave');
+      if(j.error) throw new Error('nojson');
+      aoa=j.filas||j; if(!Array.isArray(aoa)) throw new Error('nojson');
+    } else {
+      const m=url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/); if(!m) throw new Error('enlace');
+      const gid=(url.match(/[#&?]gid=(\d+)/)||[])[1];
+      const r=await fetch(`https://docs.google.com/spreadsheets/d/${m[1]}/gviz/tq?tqx=out:csv&headers=0${gid?'&gid='+gid:''}&t=${Date.now()}`);
+      const t=await r.text();
+      if(!r.ok || /^\s*<(!doctype|html)/i.test(t)) throw new Error('privada');
+      aoa=parseCSV(t);
+    }
+    cargarFilas(aoa,'Google');
+  }catch(e){
+    const msg={enlace:'Ese enlace no parece de una hoja de Google. Cópialo desde la barra de direcciones de la hoja.',
+      privada:'Desde este archivo Google no deja leer una hoja privada. Pega el enlace de tu Apps Script terminado en /exec?clave=… o importa el archivo descargado.',
+      clave:'El script ha rechazado la clave. Revisa que la clave que has escrito sea la misma que pusiste en el script.',
+      sinclave:'Escribe tu clave de gestor en la casilla "Clave".',
+      nodoget:'Tu script no tiene la función doGet publicada. Pega el código y publica una nueva versión.',
+      auth:'El script necesita autorización: ejecútalo una vez desde el editor de Apps Script.',
+      cors:'Google no ha dejado leer la respuesta del script.',
+      nojson:'El script responde, pero no con las solicitudes.'}[e.message]
+      || (/script\.google/.test(url) ? 'El script de Google no responde. Revisa que has publicado una nueva versión con la función doGet.' : 'Desde este archivo Google no deja leer una hoja privada. Pega el enlace de tu Apps Script terminado en /exec?clave=… o importa el archivo descargado.');
+    estado(msg,'err');
+    if(/script\.google/.test(url) && e.message!=='sinclave'){
+      const a=document.createElement('a'); a.href=url; a.target='_blank'; a.rel='noopener'; a.textContent='Ver respuesta del script';
+      a.style.cssText='color:var(--lago);font-weight:600;margin-left:6px'; $('estado').append(' ', a);
+    }
+  }finally{ $('btn-cargar').disabled=false; }
+}
+$('btn-cargar').addEventListener('click',cargarURL);
+['url-hoja','clave-hoja'].forEach(id=>$(id).addEventListener('keydown',e=>{ if(e.key==='Enter') cargarURL(); }));
+$('btn-import').addEventListener('click',()=>$('file').click());
+$('file').addEventListener('change',e=>{
+  const f=e.target.files[0]; e.target.value=''; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ try{
+      let aoa;
+      if(/\.csv$/i.test(f.name)) aoa=parseCSV(new TextDecoder('utf-8').decode(r.result));
+      else { const wb=XLSX.read(new Uint8Array(r.result),{type:'array',cellDates:true}); aoa=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:true,defval:''}); }
+      cargarFilas(aoa,f.name);
+    }catch(err){ estado('No se pudo leer el archivo. Descárgalo de Google como .xlsx o .csv.','err'); } };
+  r.readAsArrayBuffer(f);
+});
+
+// ---------- Lista ----------
+let filtro='todas';
+let finalizadas = LS.get('rys-finalizadas',{});
+const fechaFin = s => finalizadas[s.clave] || (/finalizada/i.test(s.estadoHoja||'') ? 'hoja' : null);
+const aceptada = s => /aceptad/i.test(s.estadoHoja||'');
+const visible = s => filtro==='todas' || (filtro==='acep' ? aceptada(s) : filtro==='fin' ? (!!fechaFin(s)&&!aceptada(s)) : (!fechaFin(s)&&!aceptada(s)));
+function marcarFinalizada(s, si){
+  if(si) finalizadas[s.clave]=new Date().toISOString(); else delete finalizadas[s.clave];
+  if(!si) s.estadoHoja='Pendiente';
+  LS.set('rys-finalizadas',finalizadas);
+  avisarHoja(s, si);
+}
+async function avisarHoja(s, si){
+  // En el archivo HTML con Apps Script, también se anota en la columna de estado de la hoja
+  const url=urlConClave();
+  if(mcp || aceptada(s) || !/script\.google(usercontent)?\.com/.test(url) || !/[?&]clave=[^&]+/.test(url)) return;
+  try{
+    const r=await fetch(url+`&accion=${si?'finalizar':'reabrir'}&fila=${s.nFila}`); const j=await r.json();
+    if(j.error) throw new Error(j.error);
+  }catch(e){ estado('La oferta se ha marcado aquí, pero no se pudo anotar en la hoja de Google. Revisa que el script tenga la nueva versión.','err'); }
+}
+document.querySelector('.filtro').addEventListener('click',e=>{
+  const b=e.target.closest('button[data-f]'); if(!b) return; filtro=b.dataset.f;
+  document.querySelectorAll('.filtro button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
+  pintarLista();
+});
+function pintarLista(){
+  const ahora=Date.now();
+  const pend=sols.filter(s=>!fechaFin(s)&&!aceptada(s)).length, acep=sols.filter(aceptada).length;
+  $('resumen').textContent=`${sols.length} solicitud${sols.length!==1?'es':''}: ${pend} pendiente${pend!==1?'s':''}, ${sols.length-pend-acep} enviada${sols.length-pend-acep!==1?'s':''}, ${acep} aceptada${acep!==1?'s':''}`;
+  const vis=sols.map((s,i)=>[s,i]).filter(([s])=>visible(s));
+  $('lista').innerHTML = vis.length ? vis.map(([s,i])=>{ const ff=fechaFin(s), ac=aceptada(s); return `
+    <div class="sol ${i===activa?'activa':''} ${ff?'hecha':''}" data-i="${i}" role="listitem">
+      <input type="checkbox" data-i="${i}" aria-label="Generar oferta para ${esc(s.nombre)}" ${sel.has(i)?'checked':''}>
+      <div><div class="nom">${esc(s.nombre||'Sin nombre')}${s.fecha&&ahora-s.fecha<2*864e5?'<span class="nuevo">Nueva</span>':''}</div>
+        <div class="ruta">${esc(s.inicio||'—')} → ${esc(s.fin||'—')}${s.km!=null?` · ${fmtNum(s.km)} km`:''} · ${s.n} ciclista${s.n!==1?'s':''}</div></div>
+      <div class="fec"><span class="ref">${esc(s.numero||'')}</span>${fmtFechaHora(s.fecha)}<br>
+        ${ac?'<span class="chip acep">★ Aceptado</span>':ff?`<span class="chip ok">✓ Enviada${ff!=='hoja'?' · '+fmtFecha(new Date(ff)):''}</span><button class="reabrir" data-reabrir="${i}">Reabrir</button>`:'<span class="chip pend">Pendiente</span>'}</div>
+    </div>`; }).join('') : `<p class="vacio">${filtro==='pend'?'No hay ofertas pendientes. ¡Todo atendido!':filtro==='acep'?'Aún no hay presupuestos aceptados.':'Aún no hay ofertas enviadas.'}</p>`;
+  $('chk-todas').checked = vis.length>0 && vis.every(([,i])=>sel.has(i));
+}
+$('lista').addEventListener('click',e=>{
+  const rb=e.target.closest('[data-reabrir]');
+  if(rb){ const s=sols[+rb.dataset.reabrir]; marcarFinalizada(s,false); pintarLista(); pintarPrevia(); estado(`La oferta de ${s.nombre||'este cliente'} vuelve a estar pendiente.`); return; }
+  const el=e.target.closest('.sol'); if(!el) return; const i=+el.dataset.i;
+  if(e.target.matches('input[type=checkbox]')){ e.target.checked?sel.add(i):sel.delete(i); }
+  activa=i; pintarLista(); pintarPrevia(); barra(); asegurarRuta(sols[i]);
+});
+$('chk-todas').addEventListener('change',e=>{ sols.forEach((s,i)=>{ if(visible(s)) e.target.checked?sel.add(i):sel.delete(i); }); pintarLista(); barra(); });
+function barra(){ pintarPie(); const n=sel.size; $('btn-pdf').disabled=!n; $('btn-pdf').textContent= n>1?`Generar ${n} ofertas`:'Generar oferta';
+  if(sols.length) estado(n?`${n} marcada${n>1?'s':''}: se descargará un PDF por cliente.`:'Marca la casilla de los clientes que quieras presupuestar.'); }
+
+// ---------- Ruta real (BRouter + OpenStreetMap) ----------
+const BROUTER='https://brouter.de/brouter';
+const VISOR_URL = /^https?:/.test(location.protocol) ? new URL('ruta.html', location.href).href.split('#')[0] : 'https://ruedasysenderos.github.io/Presupuestos-Bikepaking/ruta.html';
+let rutas = LS.get('rys-rutas3',{});
+const calculando = new Set();
+
+function encPoly(vals){ // algoritmo "encoded polyline" de Google para una lista de enteros (deltas)
+  let out=''; for(let v of vals){ v = v<0 ? ~(v<<1) : (v<<1); while(v>=0x20){ out+=String.fromCharCode((0x20|(v&0x1f))+63); v>>=5; } out+=String.fromCharCode(v+63); } return out; }
+function encodeRuta(pts){ let pl=0,pn=0,pe=0; const ll=[],el=[];
+  for(const [lon,lat,ele] of pts){ const a=Math.round(lat*1e5), b=Math.round(lon*1e5), e=Math.round(ele||0); ll.push(a-pl,b-pn); el.push(e-pe); pl=a; pn=b; pe=e; }
+  return {p:encPoly(ll), e:encPoly(el)}; }
+function simplificar(pts, maxPts=450){
+  if(pts.length<=maxPts) return pts;
+  const lat0=pts[0][1]*Math.PI/180, kx=111320*Math.cos(lat0), ky=110540;
+  const xy=pts.map(p=>[p[0]*kx,p[1]*ky]);
+  const dp=tol=>{ const keep=new Uint8Array(pts.length); keep[0]=keep[pts.length-1]=1; const st=[[0,pts.length-1]];
+    while(st.length){ const [i,j]=st.pop(); let md=0,mi=-1; const [ax,ay]=xy[i],[bx,by]=xy[j], dx=bx-ax, dy=by-ay, L=dx*dx+dy*dy||1;
+      for(let k=i+1;k<j;k++){ const t=Math.max(0,Math.min(1,((xy[k][0]-ax)*dx+(xy[k][1]-ay)*dy)/L)); const ex=ax+t*dx-xy[k][0], ey=ay+t*dy-xy[k][1]; const d=ex*ex+ey*ey; if(d>md){md=d;mi=k;} }
+      if(mi>0 && md>tol*tol){ keep[mi]=1; st.push([i,mi],[mi,j]); } }
+    return pts.filter((_,k)=>keep[k]); };
+  let tol=8, r=dp(tol); while(r.length>maxPts && tol<400){ tol*=1.5; r=dp(tol); } return r;
+}
+async function geocodificar(txt){
+  const r=await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=es,pt,fr,ad&q='+encodeURIComponent(txt),{headers:{'Accept-Language':'es'}});
+  const j=await r.json(); if(!j[0]) throw new Error('No encuentro "'+txt+'" en el mapa');
+  return {lat:+j[0].lat, lon:+j[0].lon};
+}
+function perfilesPara(s){
+  const b=norm(s.tipoBici), t=norm(s.terreno);
+  if(/carretera/.test(b) || (/carretera|asfalto/.test(t) && !/tierra|senda|gr|via verde|canada|camino/.test(t))) return {tipo:'carretera', lista:['fastbike','trekking']};
+  if(/mtb|btt/.test(b)) return {tipo:'tierra', lista:['mtb-zossebart','gravel','trekking']};
+  if(/gravel/.test(b)) return {tipo:'tierra', lista:['gravel','trekking','mtb-zossebart']};
+  return {tipo:'tierra', lista:['trekking','gravel','mtb-zossebart']};   // eléctrica, mixto o sin indicar
+}
+const PAVIMENTO=/^(asphalt|paved|concrete|concrete:.*|paving_stones|sett|chipseal|metal|cobblestone|unhewn_cobblestone)$/;
+const CARRETERA=/^(motorway|trunk|primary|secondary|tertiary|unclassified|motorway_link|trunk_link|primary_link|secondary_link|tertiary_link)$/;
+const CALLE=/^(residential|living_street|service|pedestrian)$/;
+// ¿Se puede ir en bici por este tramo? (según las etiquetas de OpenStreetMap y el nivel del grupo)
+function noCiclable(tags, nivel){
+  const n=norm(nivel), experto=/avanzado/.test(n), novato=/principiante|medio-bajo|mixto/.test(n);
+  if(/^(no|dismount|use_sidepath)$/.test(tags.bicycle||'')) return true;
+  if(tags.highway==='steps') return true;
+  if(/^(motorway|motorway_link|trunk|trunk_link)$/.test(tags.highway||'')) return true;
+  const sac=tags.sac_scale||'';
+  if(/demanding_mountain_hiking|alpine_hiking/.test(sac)) return true;
+  if(sac==='mountain_hiking' && !experto) return true;
+  const mtb=parseInt(tags['mtb:scale'],10); if(!isNaN(mtb) && mtb>=(novato?2:experto?4:3)) return true;
+  if(/^(very_horrible|impassable)$/.test(tags.smoothness||'')) return true;
+  if(/^(horrible)$/.test(tags.smoothness||'') && !experto) return true;
+  if(/^(bad|horrible|no)$/.test(tags.trail_visibility||'')) return true;
+  if(tags.highway==='footway' && tags.bicycle!=='yes' && tags.bicycle!=='designated') return true;
+  return false;
+}
+function analizar(geo, nivel){
+  const f=geo.features&&geo.features[0]; if(!f) throw new Error('sin ruta');
+  const pr=f.properties||{}, coords=f.geometry.coordinates;
+  const km=(+pr['track-length']||0)/1000, dpos=Math.round(+pr['filtered ascend']||0);
+  let amax=-Infinity, amin=Infinity; coords.forEach(c=>{ if(c[2]!=null){ amax=Math.max(amax,c[2]); amin=Math.min(amin,c[2]); } });
+  let total=0, asf=0, car=0, noBici=0;
+  const msg=pr.messages||[]; const H=msg[0]||[]; const iD=H.indexOf('Distance'), iW=H.indexOf('WayTags');
+  for(let k=1;k<msg.length;k++){ const d=+msg[k][iD]||0, tags={}; String(msg[k][iW]||'').split(' ').forEach(kv=>{ const i=kv.indexOf('='); if(i>0) tags[kv.slice(0,i)]=kv.slice(i+1); });
+    total+=d; const hw=tags.highway||'', su=tags.surface||'';
+    const pav = su ? PAVIMENTO.test(su) : (CARRETERA.test(hw)||CALLE.test(hw)||hw==='cycleway'||(hw==='track'&&tags.tracktype==='grade1'));
+    if(pav) asf+=d; if(CARRETERA.test(hw)) car+=d; if(noCiclable(tags,nivel)) noBici+=d; }
+  const pTierra= total? Math.round(100*(total-asf)/total) : null, pCarr= total? Math.round(100*car/total) : null;
+  return {km:Math.round(km*10)/10, dpos, amax:isFinite(amax)?Math.round(amax):null, amin:isFinite(amin)?Math.round(amin):null, pTierra, pCarr, noBici:Math.round(noBici), coords};
+}
+async function pedirRuta(a,b,perfil,alt,nivel){
+  const u=`${BROUTER}?lonlats=${a.lon.toFixed(6)},${a.lat.toFixed(6)}|${b.lon.toFixed(6)},${b.lat.toFixed(6)}&profile=${perfil}&alternativeidx=${alt}&format=geojson`;
+  const r=await fetch(u); const t=await r.text();
+  if(!r.ok || !t.trim().startsWith('{')) throw new Error(t.slice(0,140)||('HTTP '+r.status));
+  const res=analizar(JSON.parse(t),nivel); res.perfil=perfil; return res;
+}
+function preferenciaDesnivel(s){ const d=norm(s.desnivel); return /bajo|llano/.test(d)?'bajo':/moderado/.test(d)?'moderado':/alto|montana/.test(d)?'alto':'libre'; }
+async function calcularRuta(s){
+  if(norm(s.tipoRuta)==='circular' || norm(s.inicio)===norm(s.fin)) throw new Error('Las rutas circulares necesitan el track del cliente: pega su enlace abajo');
+  const a = s.coords&&s.coords.inicio&&s.coords.inicio.lat!=null ? s.coords.inicio : await geocodificar(s.inicio);
+  const b = s.coords&&s.coords.fin&&s.coords.fin.lat!=null ? s.coords.fin : await geocodificar(s.fin);
+  const {tipo, lista}=perfilesPara(s); const pref=preferenciaDesnivel(s);
+  const cands=[]; let ultimoError='';
+  for(const perfil of lista){
+    for(const alt of (perfil===lista[0]?[0,1,2]:[0,1])){
+      try{ cands.push(await pedirRuta(a,b,perfil,alt,s.nivel)); }
+      catch(e){ ultimoError=e.message; if(alt===0) break; }   // si el perfil no existe, pasa al siguiente
+    }
+  }
+  if(!cands.length) throw new Error('El servicio de rutas no responde ('+ultimoError+')');
+  // 1) Solo rutas 100 % ciclables (se toleran 150 m, p. ej. un cruce a pie)
+  let validas=cands.filter(c=>c.noBici<=150); const aviso=[];
+  if(!validas.length){ const m=Math.min(...cands.map(c=>c.noBici)); validas=cands.filter(c=>c.noBici===m); aviso.push(`${fmtNum(m)} m del mejor trazado no son ciclables: revisa la ruta`); }
+  // 2) Según el desnivel pedido se aceptan rutas más largas para evitar subidas
+  const minKm=Math.min(...validas.map(c=>c.km)); const fLong={bajo:1.9,moderado:1.5,alto:1.35,libre:1.4}[pref];
+  validas=validas.filter(c=>c.km<=minKm*fLong);
+  const puntos=c=>{ const g=c.dpos/Math.max(c.km,1); // metros de subida por km
+    const pDes = pref==='bajo' ? g*4 : pref==='moderado' ? Math.max(0,g-12)*3 : 0;
+    const pTerreno = tipo==='carretera' ? 0 : (100-c.pTierra)*1 + c.pCarr*1.5;
+    const pLong = (c.km/minKm-1)*(pref==='bajo'?15:40);
+    return pDes + pTerreno + pLong + c.noBici/10; };
+  validas.sort((x,y)=>puntos(x)-puntos(y)); const mejor=validas[0];
+  const g=mejor.dpos/Math.max(mejor.km,1);
+  if(pref==='bajo' && g>12) aviso.push(`el cliente pidió poco desnivel y la ruta más llana posible sube ${fmtNum(mejor.dpos)} m (${fmtNum(g,0)} m por km): entre estos dos puntos no hay alternativa llana`);
+  if(tipo==='tierra' && mejor.pCarr>15) aviso.push(`un ${mejor.pCarr} % va por carretera porque no hay caminos ciclables en algún tramo`);
+  const simp=simplificar(mejor.coords); const enc=encodeRuta(simp);
+  const meta={n:`Ruta ${s.inicio.split(',')[0]} - ${s.fin.split(',')[0]}`, a:s.inicio, b:s.fin, k:mejor.km, d:mejor.dpos, t:mejor.pTierra, c:mejor.pCarr, ref:s.numero||'', y:tipo, m:s.tipoBici||''};
+  const url=`${VISOR_URL}#m=${encodeURIComponent(JSON.stringify(meta))}&p=${encodeURIComponent(enc.p)}&e=${encodeURIComponent(enc.e)}`;
+  const res={km:mejor.km, dpos:mejor.dpos, amax:mejor.amax, amin:mejor.amin, pTierra:mejor.pTierra, pCarr:mejor.pCarr, noBici:mejor.noBici, perfil:mejor.perfil, tipo, pref, aviso, url, p:enc.p, e:enc.e, probadas:cands.length, fecha:new Date().toISOString()};
+  rutas[s.clave]=res; LS.set('rys-rutas3',rutas); return res;
+}
+async function asegurarRuta(s, forzar=false){
+  if(!s || (!forzar && rutas[s.clave]) || calculando.has(s.clave)) return rutas[s&&s.clave];
+  calculando.add(s.clave); pintarRuta();
+  try{ await calcularRuta(s); delete (s._errRuta); }
+  catch(e){ s._errRuta=e.message; }
+  finally{ calculando.delete(s.clave); if(sols[activa]===s){ pintarPrevia(); } pintarRuta(); }
+  return rutas[s.clave];
+}
+function pintarRuta(){
+  const s=sols[activa]; const el=$('rr-info'); if(!el) return;
+  if(!s){ el.textContent=''; return; }
+  const r=rutas[s.clave];
+  $('btn-ruta').disabled=calculando.has(s.clave);
+  if(calculando.has(s.clave)){ el.innerHTML='Calculando la ruta real por caminos… puede tardar unos segundos.'; return; }
+  if(s._errRuta){ el.innerHTML=`<span class="falta">${esc(s._errRuta)}.</span>`; $('btn-ruta').textContent='Reintentar'; return; }
+  if(!r){ el.textContent='Aún sin calcular.'; $('btn-ruta').textContent='Calcular ruta real'; return; }
+  $('btn-ruta').textContent='Recalcular';
+  const dif = s.km ? Math.round(100*(r.km-s.km)/s.km) : 0;
+  el.innerHTML=`<b>${fmtNum(r.km,1)} km reales</b>${s.km?` (el cliente indicó ${fmtNum(s.km)} km${Math.abs(dif)>=10?`, <span class="falta">${dif>0?'+':''}${dif}%</span>`:''})`:''} · D+ <b>${fmtNum(r.dpos)} m</b> · `+
+    `${r.pTierra!=null?`<b>${r.pTierra}%</b> sin asfaltar · ${r.pCarr}% carretera`:''} · perfil ${esc(r.perfil)} · <a href="${esc(r.url)}" target="_blank" rel="noopener">ver ruta</a>`+
+    `<br>Desnivel pedido: ${esc(s.desnivel||'sin preferencia')} · ${fmtNum(r.dpos/Math.max(r.km,1),0)} m de subida por km · ${r.noBici?fmtNum(r.noBici)+' m no ciclables':'100 % ciclable'} · ${r.probadas||1} rutas comparadas`+
+    ((r.aviso||[]).length ? `<br><span class="falta">Aviso: ${(r.aviso||[]).map(esc).join('; ')}.</span>`:'');
+}
+
+// ---------- Presupuesto ----------
+function presupuesto(s){
+  const a=ajustes(), x=extras[s.clave]||{}, m=1+a.margen, r=v=>v==null?null:Math.round(v*m*100)/100;
+  const lineas=[];
+  const alojCliente=/usuario/i.test(s.alojGestion);
+  if(alojCliente) lineas.push({c:'Alojamiento',d:'Gestionado por el propio grupo',v:null,txt:'No incluido'});
+  else if(!s.noches) lineas.push({c:'Alojamiento',d:'Ruta de un día, sin pernocta',v:null,txt:'No necesario'});
+  else lineas.push({c:'Alojamiento',d:`${s.alojTipo||'Alojamiento'}; ${s.noches} noche${s.noches!==1?'s':''} para ${s.n} persona${s.n!==1?'s':''}`,v:r(num(x.aloj))});
+  const tr=[]; if(s.recogida) tr.push('recogida en destino'); if(s.parcial&&s.nParcial) tr.push(`recogida parcial en ${s.pobParcial||'ruta'} (${s.nParcial})`);
+  if(s.bici) tr.push(`traslado de ${s.n} bicicleta${s.n!==1?'s':''}`); if(s.hayFurgo) tr.push(`furgoneta y combustible (${fmtNum(s.kmVeh)} km)`);
+  const vTr=s.costeRec+s.costeBici+s.costeFurgo;
+  if(tr.length||vTr) lineas.push({c:'Transporte',d:tr.join(', ').replace(/^./,c=>c.toUpperCase()),v:r(vTr)});
+  if(s.alimEmpresa) lineas.push({c:'Alimentación',d:`${s.productos.join(', ')||'Avituallamiento'}; ${s.dias} día${s.dias!==1?'s':''}`,v:r(s.costeAlim)});
+  if(s.pap) lineas.push({c:'Puesta a punto',d:`Revisión de ${s.nBicis} bicicleta${s.nBicis!==1?'s':''} (materiales aparte)`,v:r(s.costePap)});
+  const base=lineas.reduce((t,l)=>t+(l.v||0),0), iva=Math.round(base*a.iva*100)/100, total=base+iva;
+  const hoy=new Date(), val=new Date(hoy.getTime()+a.validez*864e5);
+  const f=s.fecha||hoy;
+  const ref=s.numero ? s.numero.replace(/^N[º°o]\s*/i,'RS-') : `RS-${f.getFullYear()}${dd(f.getMonth()+1)}${dd(f.getDate())}-${dd(f.getHours())}${dd(f.getMinutes())}`;
+  const rr=rutas[s.clave]||null;
+  const dpos=num(x.dpos)??(rr?rr.dpos:null), amax=num(x.amax)??(rr?rr.amax:null), amin=num(x.amin)??(rr?rr.amin:null);
+  const kmR = rr ? rr.km : s.km;
+  const noIncl=[]; if(!s.alimEmpresa) noIncl.push('alimentación durante la ruta (la lleva el grupo)'); if(alojCliente) noIncl.push('alojamiento (lo reserva el grupo)');
+  return { ...s, ref, hoy:fmtFecha(hoy), validez:fmtFecha(val), salidaTxt:fmtFecha(s.salida), fila:s.nFila, numero:s.numero, lineas, base, iva, ivaPct:a.iva*100, total, porPersona:s.n?total/s.n:null,
+    track:(x.wikiloc||'').trim()||(x.track||'').trim()||(rr?rr.url:'')||s.track,
+    trackApp:(x.wikiloc||'').trim()?'Se abre en Wikiloc':(x.track||'').trim()?'':(rr?'Wikiloc u Organic Maps, desde tu móvil':'Organic Maps'), pendientes:lineas.some(l=>l.v==null&&!l.txt), noIncl,
+    modalidad:[s.tipoBici,s.nivel].filter(Boolean).join(', '),
+    terreno: s.terreno + (rr&&rr.pTierra!=null&&rr.tipo!=='carretera' ? ` (${rr.pTierra}% sin asfaltar)` : ''), rutaReal:!!rr,
+    grupo: s.n? `${s.n}${s.edades?` (edades aprox. ${s.edades})`:''}`:'',
+    stats:[
+      ['Kilómetros', kmR!=null?fmtNum(kmR,kmR%1?1:0)+' km':'-'],
+      ['Días / noches', `${s.dias} / ${s.noches}`],
+      ['Media diaria', kmR!=null?fmtNum(kmR/s.dias,0)+' km':'-'],
+      [dpos!=null?'Desnivel +':'Desnivel previsto', dpos!=null?fmtNum(dpos)+' m':(s.desnivel||'-')],
+      ['Altitud máx.', amax!=null?fmtNum(amax)+' m':'-'],
+      ['Altitud mín.', amin!=null?fmtNum(amin)+' m':'-'],
+    ]};
+}
+
+// ---------- Vista previa ----------
+function pintarPrevia(){
+  const pp=$('papel').querySelector('.pp');
+  const s=sols[activa];
+  $('completar').hidden=!s; $('pp-foot').hidden=!s; $('docpanel').hidden=!s;
+  if(!s){ const st=$('papel').querySelector('.sello'); if(st) st.remove(); pp.innerHTML='<p class="vacio">Toca una solicitud para ver aquí su oferta.</p>'; return; }
+  const x=extras[s.clave]||{}; Object.entries(CAMPOS_EXTRA).forEach(([k,id])=>{ if(document.activeElement!==$(id)) $(id).value=x[k]??''; });
+  $('c-track').placeholder = 'Si lo dejas vacío se usa la ruta real calculada';
+  const p=presupuesto(s);
+  const ffv=fechaFin(s); let st=$('papel').querySelector('.sello');
+  if(ffv){ if(!st){ st=document.createElement('div'); st.className='sello'; $('papel').appendChild(st); } st.textContent='✓ Oferta finalizada'+(ffv!=='hoja'?' el '+fmtFecha(new Date(ffv)):''); } else if(st) st.remove();
+  const g=(l,v)=>`<div><small>${esc(l)}</small><span>${esc(v||'—')}</span></div>`;
+  pp.innerHTML=`
+    <div class="pp-top"><h3>Presupuesto de viaje</h3><div class="pp-meta">Nº <b>${esc(p.ref)}</b><br>Fecha ${p.hoy}<br>Válido hasta ${p.validez}</div></div>
+    <div class="pp-sec">Datos del cliente</div>
+    <div class="pp-g">${g('Nombre',p.nombre)}${g('Teléfono',p.telefono)}${g('Email',p.email)}${g('Fecha de inicio',fmtFecha(p.salida))}${g('Bicicleta y nivel',p.modalidad)}${g('Nº de ciclistas',p.grupo)}</div>
+    <div class="pp-sec">Datos de la ruta</div>
+    <div class="pp-g">${g('Punto de inicio',p.inicio)}${g('Punto final',p.fin)}${g('Tipo de ruta',p.tipoRuta)}${g('Terreno',p.terreno)}</div>
+    <div class="pp-stats">${p.stats.map(([l,v])=>`<div><b>${esc(v)}</b><small>${esc(l)}</small></div>`).join('')}</div>
+    <div class="pp-sec">Presupuesto</div>
+    <table><thead><tr><th>Concepto</th><th>Detalle</th><th style="text-align:right">Importe</th></tr></thead><tbody>
+      ${p.lineas.map(l=>`<tr><td><b>${l.c}</b></td><td>${esc(l.d)}</td><td class="n">${l.v!=null?eur(l.v):`<span class="pend">${l.txt||'Por confirmar'}</span>`}</td></tr>`).join('')}
+      <tr class="tot"><td colspan="2" style="text-align:right">Base imponible</td><td class="n">${eur(p.base)}</td></tr>
+      <tr class="tot"><td colspan="2" style="text-align:right">IVA (${fmtNum(p.ivaPct)} %)</td><td class="n">${eur(p.iva)}</td></tr>
+      <tr class="gran"><td colspan="2" style="text-align:right">Total</td><td class="n">${eur(p.total)}</td></tr>
+      ${p.porPersona!=null?`<tr class="tot"><td colspan="2" style="text-align:right">Por ciclista</td><td class="n">${eur(p.porPersona)}</td></tr>`:''}
+    </tbody></table>`;
+  $('pp-foot').innerHTML=`¿Te encaja la propuesta?<br><span class="pp-acepto">Acepto presupuesto</span>`;
+  pintarDoc();
+  pintarRuta();
+}
+$('btn-ruta').addEventListener('click',()=>{ const s=sols[activa]; if(s){ delete s._errRuta; asegurarRuta(s,true); } });
+
+let downloads=null, mcp=null;
+function bajarLocal(nombre,blob){ const u=URL.createObjectURL(blob), a=document.createElement('a'); a.href=u; a.download=nombre; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),5000); }
+const espera=ms=>new Promise(r=>setTimeout(r,ms));
+const correosURL = () => ($('url-correos').value||'').trim();
+$('url-correos').value = LS.get('rys-correos','');
+$('url-correos').addEventListener('change',()=>LS.set('rys-correos',correosURL()));
+const claveGestor = () => ($('clave-hoja').value||'').trim();
+function urlAcepto(p){ return RYS.base()+'acepto.html#o='+RYS.codificar(RYS.resumenOferta(p))+(correosURL()?'&s='+encodeURIComponent(correosURL()):''); }
+const escH = s => String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function htmlCorreo(titulo, parrafos, boton){
+  return `<div style="font-family:Arial,sans-serif;max-width:560px;color:#2F2B27"><h2 style="color:#24452F;margin:0 0 12px">${escH(titulo)}</h2>`+
+    parrafos.map(t=>`<p style="margin:0 0 12px;line-height:1.5">${t}</p>`).join('')+
+    (boton?`<p style="margin:22px 0"><a href="${escH(boton.url)}" style="background:#24452F;color:#fff;padding:14px 24px;border-radius:10px;text-decoration:none;font-weight:bold;display:inline-block">${escH(boton.texto)}</a></p>`:'')+
+    `<p style="color:#6F6A63;font-size:13px;margin-top:24px">Ruedas y Senderos · ${escH(RYS.EMAIL_GESTOR)}</p></div>`;
+}
+async function enviarPorCorreo(para, asunto, texto, html, blob, archivo){
+  if(!correosURL()) throw new Error('sin_script');
+  if(!claveGestor()) throw new Error('sin_clave');
+  return RYS.postScript(correosURL(), {accion:'enviarCliente', clave:claveGestor(), para, asunto, texto, html, archivo, pdf: await RYS.blobABase64(blob)});
+}
+const errCorreo = e => ({sin_script:'falta la URL del script de correos', sin_clave:'falta tu clave', clave:'el script de correos tiene otra clave', email:'el email del cliente no es válido', nodopost:'el script de correos no está publicado', respuesta:'el script de correos no responde'}[e.message]||e.message);
+
+async function generar(idx){
+  if(!idx.length) return;
+  const {jsPDF}=window.jspdf; const hechos=[], enviados=[], fallos=[];
+  const porEmail=$('chk-email').checked;
+  for(const i of idx){
+    const s=sols[i];
+    estado(`Preparando la oferta de ${s.nombre||'cliente'}…`); await asegurarRuta(s);
+    const p=presupuesto(s); const ua=urlAcepto(p);
+    const pw=Array.from(crypto.getRandomValues(new Uint8Array(12)),b=>b.toString(16).padStart(2,'0')).join('');
+    const doc=new jsPDF({unit:'mm',format:'a4',compress:true,encryption:{userPermissions:['print'],ownerPassword:pw}});
+    RYS.paginaOferta(doc,p,{modo:'cliente',urlAcepto:ua});
+    doc.setProperties({title:'Presupuesto '+pdfTxt(p.ref),author:'Ruedas y Senderos',creator:'Ruedas y Senderos'});
+    const nom=RYS.nombreArchivo('Oferta',p); const blob=doc.output('blob');
+    try{
+      if(downloads) await downloads.save({filename:nom,data:blob}); else { bajarLocal(nom, blob); await espera(400); }
+      hechos.push(nom);
+    }catch(e){ if(e&&e.code==='declined') continue; estado('No se pudo guardar '+nom+'.','err'); return; }
+    if(porEmail && s.email){
+      estado(`Enviando la oferta a ${s.email}…`);
+      try{ await enviarPorCorreo(s.email, `Tu presupuesto de ruta ${p.ref} · Ruedas y Senderos`,
+          `Hola ${s.nombre}, te enviamos el presupuesto de tu ruta. Para aceptarlo abre: ${ua}`,
+          htmlCorreo(`Tu presupuesto de ruta`, [`Hola ${escH((s.nombre||'').split(' ')[0])},`, `Te enviamos el presupuesto de tu ruta <b>${escH(s.inicio.split(',')[0])} → ${escH(s.fin.split(',')[0])}</b> (${escH(p.ref)}), por un total de <b>${escH(eur(p.total))}</b>. Lo tienes adjunto en PDF.`, `Si te encaja, pulsa el botón para aceptarlo y te prepararemos la documentación completa de la ruta, con el track.`], {texto:'Acepto presupuesto', url:ua}),
+          blob, nom);
+        enviados.push(s.nombre); }
+      catch(e){ fallos.push(`${s.nombre}: ${errCorreo(e)}`); }
+    }
+    marcarFinalizada(s,true); sel.delete(i);
+  }
+  pintarLista(); pintarPrevia(); pintarPie();
+  if(!hechos.length){ estado('Descarga cancelada.'); return; }
+  let m = hechos.length>1?`${hechos.length} ofertas guardadas`:`Oferta guardada: ${hechos[0]}`;
+  if(enviados.length) m+=` y enviada${enviados.length>1?'s':''} por email`;
+  if(fallos.length) m+=`. No se pudo enviar por email (${fallos.join('; ')}); mándala tú desde tu correo.`;
+  estado(m+'.', fallos.length?'err':'ok');
+  $('pie-texto').textContent = enviados.length ? `Enviado a ${enviados.join(', ')}. Cuando lo acepte, te llegará un email con el presupuesto sellado.` : `PDF guardado. Envíaselo al cliente: lleva el botón "Acepto presupuesto".`;
+}
+
+// ---------- Documentación de la ruta ----------
+let docDatos = LS.get('rys-doc',{});
+const docCache = {};
+function docMsg(t,c=''){ const e=$('doc-msg'); e.textContent=t; e.className='nota '+(c==='err'?'falta':''); }
+function pintarDoc(){
+  const s=sols[activa]; $('docpanel').hidden=!s; if(!s) return;
+  const dd_=docDatos[s.clave]||{};
+  $('doc-aviso').innerHTML = aceptada(s) ? '<b style="color:#1F5F8B">★ Presupuesto aceptado.</b> Completa los alojamientos y envía la documentación.' : 'Este presupuesto aún no está aceptado. Puedes preparar la documentación igualmente.';
+  if(document.activeElement!==$('doc-notas')) $('doc-notas').value=dd_.notas||'';
+  const app=/app/i.test(s.alojGestion);
+  if(!app || !s.noches){ $('doc-aloj').dataset.clave=''; $('doc-aloj').innerHTML = `<p class="nota">${app?'Ruta de un día: sin alojamiento.':'El alojamiento lo gestiona el propio grupo.'}</p>`; return; }
+  if($('doc-aloj').dataset.clave===s.clave) return;   // no repintar mientras se escribe
+  $('doc-aloj').dataset.clave=s.clave;
+  const al=dd_.aloj||[];
+  let h=`<p class="nota" style="margin-top:4px"><b>Alojamientos elegidos</b> (${esc(s.alojTipo||'cualquier tipo')}). Precio por noche para todo el grupo.</p>`;
+  for(let k=0;k<s.noches;k++){ const a=al[k]||{}; const f=s.salida?fmtFecha(new Date(s.salida.getTime()+k*864e5)):`Noche ${k+1}`;
+    h+=`<div class="aloj-row" data-k="${k}"><span class="f">${esc(f)}</span><input data-c="nombre" placeholder="Nombre del alojamiento" value="${esc(a.nombre||'')}"><input data-c="localidad" placeholder="Localidad" value="${esc(a.localidad||'')}"><input data-c="precio" type="number" min="0" step="0.01" placeholder="€/noche" value="${esc(a.precio||'')}"><span></span><input class="enl" data-c="enlace" type="url" placeholder="Enlace (web, Booking, Google Maps…)" value="${esc(a.enlace||'')}"></div>`; }
+  $('doc-aloj').innerHTML=h;
+}
+$('doc-aloj').addEventListener('input',e=>{ const row=e.target.closest('.aloj-row'); const s=sols[activa]; if(!row||!s) return;
+  const d=docDatos[s.clave]=docDatos[s.clave]||{}; d.aloj=d.aloj||[]; const k=+row.dataset.k; d.aloj[k]=d.aloj[k]||{};
+  d.aloj[k][e.target.dataset.c]=e.target.value; d.aloj[k].fecha=row.querySelector('.f').textContent; LS.set('rys-doc',docDatos); });
+$('doc-notas').addEventListener('input',()=>{ const s=sols[activa]; if(!s) return; (docDatos[s.clave]=docDatos[s.clave]||{}).notas=$('doc-notas').value; LS.set('rys-doc',docDatos); });
+async function construirDoc(s){
+  const rr=await asegurarRuta(s); if(!rr) throw new Error(s._errRuta||'No se pudo calcular la ruta');
+  if(!docCache[s.clave]) docCache[s.clave]=await RYSDoc.preparar(s, rr, m=>docMsg(m));
+  const p=presupuesto(s), x=extras[s.clave]||{}, a=ajustes(), dd_=docDatos[s.clave]||{};
+  docMsg('Montando el PDF…');
+  return {p, doc:RYSDoc.pdf(s, rr, docCache[s.clave], {ref:p.ref, margen:a.margen, iva:a.iva, DV_COSTS, alojamientos:dd_.aloj||[], notas:dd_.notas||'', track:(x.wikiloc||'').trim()||(x.track||'').trim()||rr.url})};
+}
+async function accionDoc(enviar){
+  const s=sols[activa]; if(!s) return;
+  $('doc-pdf').disabled=$('doc-enviar').disabled=true;
+  try{
+    const {p,doc}=await construirDoc(s); const blob=doc.output('blob'); const nom=RYS.nombreArchivo('Documentacion_ruta',p);
+    if(!enviar){ if(downloads) await downloads.save({filename:nom,data:blob}); else bajarLocal(nom,blob); docMsg('Documentación descargada: '+nom); return; }
+    if(!s.email) throw new Error('la solicitud no tiene email');
+    docMsg(`Enviando a ${s.email}…`);
+    await enviarPorCorreo(s.email, `Documentación de tu ruta ${p.ref} · Ruedas y Senderos`, `Hola ${s.nombre}, te enviamos la documentación completa de tu ruta.`,
+      htmlCorreo('La documentación de tu ruta', [`Hola ${escH((s.nombre||'').split(' ')[0])},`, `¡Todo listo! Te adjuntamos la documentación completa de tu ruta <b>${escH(s.inicio.split(',')[0])} → ${escH(s.fin.split(',')[0])}</b>: etapas, altimetría, alojamientos, recogida y tu checklist personal con lo esencial que debe llevar cada ciclista.`, `Puedes marcar el checklist directamente en el PDF (ábrelo con Adobe Acrobat Reader o con la app Archivos del móvil).`], {texto:'Abrir track de la ruta', url:(extras[s.clave]||{}).wikiloc||rutas[s.clave].url}),
+      blob, nom);
+    docMsg(`Documentación enviada a ${s.email}.`);
+  }catch(e){ docMsg('No se pudo completar: '+errCorreo(e),'err'); }
+  finally{ $('doc-pdf').disabled=$('doc-enviar').disabled=false; }
+}
+$('doc-pdf').addEventListener('click',()=>accionDoc(false));
+$('doc-enviar').addEventListener('click',()=>accionDoc(true));
+
+// Enlace desde el correo de aceptación: ?doc=Nº&fila=N
+const PARAM_DOC = new URLSearchParams(location.search);
+function abrirDocPedido(){
+  const ref=PARAM_DOC.get('doc'), fila=+PARAM_DOC.get('fila')||0; if(!ref&&!fila) return;
+  const i=sols.findIndex(s=>(ref&&(s.numero===ref||presupuesto(s).ref===ref))||(fila&&s.nFila===fila)); if(i<0) return;
+  if(!aceptada(sols[i])) sols[i].estadoHoja='Aceptado';   // viene del correo de aceptación
+  activa=i; filtro='todas'; pintarLista(); pintarPrevia(); barra(); asegurarRuta(sols[i]);
+  setTimeout(()=>$('docpanel').scrollIntoView({behavior:'smooth',block:'start'}),300);
+  estado(`Abierta la solicitud de ${sols[i].nombre} para preparar su documentación.`,'ok');
+}
+
+const objetivoPie = () => sel.size ? [...sel].sort((a,b)=>a-b) : (activa!=null && sols[activa] ? [activa] : []);
+function pintarPie(){
+  const idx=objetivoPie(); $('btn-pdf-pie').disabled=!idx.length;
+  if(!idx.length){ $('pie-texto').textContent='Carga las solicitudes y elige un cliente para generar su PDF.'; return; }
+  $('btn-pdf-pie').textContent = idx.length>1 ? `Generar ${idx.length} PDF para los clientes` : 'Generar PDF para el cliente';
+  $('pie-texto').textContent = idx.length>1 ? `Se generará un PDF protegido para cada uno de los ${idx.length} clientes marcados.` : `PDF protegido para ${sols[idx[0]].nombre||'el cliente'}, sin el track y con el botón "Acepto presupuesto".`;
+}
+$('btn-pdf').addEventListener('click',()=>generar([...sel].sort((a,b)=>a-b)));
+$('btn-pdf-pie').addEventListener('click',()=>generar(objetivoPie()));
+(async()=>{
+  if(!(window.claude&&window.claude.use)) return;
+  try{ downloads=await window.claude.use('downloads'); }catch(e){}
+  try{ mcp=await window.claude.use('mcp'); }catch(e){}
+  if(mcp && LS.get('rys-auto',false)) cargarURL();
+})();
+if(!(window.claude&&window.claude.use) && /script\.google/.test($('url-hoja').value) && claveGestor()) cargarURL();
+})();
+</script>
+</body>
+</html>
