@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Aceptar presupuesto · Ruedas y Senderos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="rys-comun.js"></script>
+<style>
+:root{--pino:#24452F;--musgo:#5E8C35;--texto:#2F2B27;--gris:#6F6A63;--fondo:#F4F6F1;--panel:#fff;--linea:#DCE2D6;--suave:#EAF0E4;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--fondo:#141A16;--panel:#1C241E;--texto:#E8ECE4;--linea:#33402F;--suave:#223026;--gris:#A3AB9E}}
+:root[data-theme="dark"]{--fondo:#141A16;--panel:#1C241E;--texto:#E8ECE4;--linea:#33402F;--suave:#223026;--gris:#A3AB9E}
+*{box-sizing:border-box}
+body{margin:0;background:var(--fondo);color:var(--texto);font:16px/1.5 "Barlow",Arial,Helvetica,sans-serif}
+header img{display:block;width:100%;max-height:230px;object-fit:cover}
+main{max-width:640px;margin:0 auto;padding:20px 16px 48px}
+h1{font:700 clamp(28px,6vw,38px)/1.1 "Barlow Condensed","Arial Narrow",Arial,sans-serif;margin:0 0 6px}
+.sub{color:var(--gris);margin:0 0 18px}
+.card{background:var(--panel);border:1px solid var(--linea);border-radius:16px;padding:18px}
+.fila{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--linea)}
+.fila:last-child{border-bottom:none}
+.fila span{color:var(--gris)} .fila b{text-align:right}
+.total{display:flex;justify-content:space-between;align-items:center;background:var(--pino);color:#fff;border-radius:12px;padding:14px 16px;margin-top:14px}
+.total b{font:700 26px "Barlow Condensed",Arial,sans-serif}
+label.ok{display:flex;gap:10px;align-items:flex-start;margin:18px 0 6px;font-size:15px}
+label.ok input{width:22px;height:22px;accent-color:var(--pino);flex:none;margin-top:1px}
+button{font:600 18px "Barlow",Arial,sans-serif;width:100%;border:none;border-radius:14px;padding:16px;background:var(--pino);color:#fff;cursor:pointer;margin-top:10px}
+button:disabled{background:#9DAA9F;cursor:not-allowed}
+:focus-visible{outline:3px solid var(--musgo);outline-offset:2px}
+.msg{margin-top:14px;font-size:15px}
+.hecho{text-align:center;padding:30px 18px}
+.hecho .icono{font-size:46px;line-height:1}
+.err{color:#B3261E}
+a{color:var(--musgo)}
+</style>
+</head>
+<body>
+<header><img id="banner" alt="Ruedas y Senderos"></header>
+<main id="main">
+  <h1>Confirmar presupuesto</h1>
+  <p class="sub" id="sub"></p>
+  <div class="card" id="resumen"></div>
+  <label class="ok"><input type="checkbox" id="chk"> He revisado el presupuesto y quiero que Ruedas y Senderos prepare mi ruta.</label>
+  <button id="btn" disabled>Acepto presupuesto</button>
+  <p class="msg" id="msg" role="status"></p>
+</main>
+<script>
+(() => {
+const $=id=>document.getElementById(id);
+$('banner').src=RYS.BANNER;
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const q=new URLSearchParams(location.hash.slice(1));
+let p=null; try{ p=RYS.decodificar(q.get('o')); }catch(e){}
+const script=q.get('s')||'';
+if(!p){ $('main').innerHTML='<div class="card hecho"><p>Este enlace de aceptación no es válido. Escríbenos a <a href="mailto:'+RYS.EMAIL_GESTOR+'">'+RYS.EMAIL_GESTOR+'</a>.</p></div>'; return; }
+const claveLS='rys-aceptado-'+p.ref;
+$('sub').textContent=`Presupuesto ${p.ref} · ${p.nombre}`;
+const filas=[['Ruta',`${(p.inicio||'').split(',')[0]} → ${(p.fin||'').split(',')[0]}`],['Fecha de inicio',p.salidaTxt||'-'],['Ciclistas',p.grupo||'-'],
+  ...(p.lineas||[]).map(l=>[l.c, l.v!=null?RYS.eur(l.v):(l.txt||'Por confirmar')]),['Base imponible',RYS.eur(p.base)],[`IVA (${RYS.fmtNum(p.ivaPct)} %)`,RYS.eur(p.iva)]];
+$('resumen').innerHTML=filas.map(([a,b])=>`<div class="fila"><span>${esc(a)}</span><b>${esc(b)}</b></div>`).join('')+`<div class="total"><span>Total</span><b>${esc(RYS.eur(p.total))}</b></div>`+`<p class="sub" style="margin:10px 0 0;font-size:14px">Válido hasta el ${esc(p.validez)}.</p>`;
+const hecho=(txt)=>{ $('main').innerHTML=`<div class="card hecho"><div class="icono">✅</div><h1>¡Presupuesto aceptado!</h1><p>${txt}</p></div>`; };
+try{ const prev=localStorage.getItem(claveLS); if(prev){ hecho(`Ya nos confirmaste este presupuesto el ${esc(prev)}. Te enviaremos la documentación de la ruta a tu correo.`); return; } }catch(e){}
+$('chk').addEventListener('change',e=>$('btn').disabled=!e.target.checked);
+$('btn').addEventListener('click', async()=>{
+  $('btn').disabled=true; $('msg').className='msg'; $('msg').textContent='Enviando tu confirmación…';
+  const ahora=new Date(); const fecha=`${RYS.fmtFecha(ahora)} ${RYS.dd(ahora.getHours())}:${RYS.dd(ahora.getMinutes())}`;
+  const urlDoc=RYS.base()+'?doc='+encodeURIComponent(p.numero||p.ref)+(p.fila?'&fila='+p.fila:'');
+  const {jsPDF}=window.jspdf; const doc=new jsPDF({unit:'mm',format:'a4',compress:true});
+  RYS.paginaOferta(doc,p,{modo:'aceptado',urlDoc,fechaAceptado:'Aceptado el '+fecha});
+  doc.setProperties({title:'Presupuesto aceptado '+p.ref,author:'Ruedas y Senderos'});
+  const blob=doc.output('blob'); const nombre=RYS.nombreArchivo('Presupuesto_ACEPTADO',p);
+  try{
+    if(!script) throw new Error('sin_script');
+    await RYS.postScript(script,{accion:'aceptar',ref:p.ref,numero:p.numero||'',fila:p.fila||0,nombre:p.nombre,email:p.email,telefono:p.telefono,total:RYS.eur(p.total),ruta:`${p.inicio} - ${p.fin}`,fecha,urlDoc,archivo:nombre,pdf:await RYS.blobABase64(blob)});
+    try{ localStorage.setItem(claveLS,fecha); }catch(e){}
+    hecho('Gracias, '+esc((p.nombre||'').split(' ')[0])+'. Hemos recibido tu confirmación y en breve te enviaremos a tu correo la documentación completa de la ruta, con el track.');
+  }catch(e){
+    $('btn').disabled=false; $('msg').className='msg err';
+    const asunto=encodeURIComponent(`Acepto el presupuesto ${p.ref}`), cuerpo=encodeURIComponent(`Hola, soy ${p.nombre}. Acepto el presupuesto ${p.ref} (${RYS.eur(p.total)}) para la ruta ${p.inicio} - ${p.fin}.`);
+    $('msg').innerHTML=`No hemos podido enviar la confirmación automáticamente. <a href="mailto:${RYS.EMAIL_GESTOR}?subject=${asunto}&body=${cuerpo}">Pulsa aquí para confirmarlo por email</a>.`;
+  }
+});
+})();
+</script>
+</body>
+</html>
